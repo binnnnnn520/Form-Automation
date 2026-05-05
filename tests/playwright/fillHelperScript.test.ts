@@ -72,6 +72,70 @@ describe('fillHelperScript', () => {
     await page.close();
   });
 
+  it('matches model answers against decorated option labels and numeric option values', async () => {
+    page = await browser.newPage();
+    await page.route('http://127.0.0.1:8787/api/answers', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          answers: [
+            { questionId: 'grade', value: '大一', confidence: 0.95, action: 'fill', reason: 'test' },
+            { questionId: 'city', value: '上海', confidence: 0.95, action: 'fill', reason: 'test' }
+          ]
+        })
+      });
+    });
+    await page.setContent(`
+      <form>
+        <fieldset>
+          <legend>你的年级是：</legend>
+          <label><input type="radio" name="grade" value="1">A. 大一</label>
+          <label><input type="radio" name="grade" value="2">B. 大二</label>
+        </fieldset>
+        <label>城市
+          <select name="city">
+            <option value="">请选择</option>
+            <option value="1">北京</option>
+            <option value="2">上海</option>
+          </select>
+        </label>
+      </form>
+    `);
+
+    await page.addScriptTag({ content: fillHelperScript() });
+
+    await page.waitForFunction(() => document.getElementById('questionnaire-automation-helper-status')?.textContent?.includes('已填写 2 / 2'));
+    expect(await page.locator('input[name="grade"][value="1"]').isChecked()).toBe(true);
+    expect(await page.locator('select[name="city"]').inputValue()).toBe('2');
+
+    await page.close();
+  });
+
+  it('explains when the model returned answers but none were fillable', async () => {
+    page = await browser.newPage();
+    await page.route('http://127.0.0.1:8787/api/answers', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          answers: [
+            { questionId: 'dept', value: '研发部', confidence: 0.95, action: 'review', reason: 'test' }
+          ]
+        })
+      });
+    });
+    await page.goto(pathToFileURL(resolve('tests/fixtures/simple-questionnaire.html')).toString());
+
+    await page.addScriptTag({ content: fillHelperScript() });
+
+    const status = page.locator('#questionnaire-automation-helper-status');
+    await page.waitForFunction(() => document.getElementById('questionnaire-automation-helper-status')?.textContent?.includes('可填 0'));
+    expect(await status.textContent()).toContain('模型返回 1 条');
+
+    await page.close();
+  });
+
   it('shows clean local API errors instead of raw server JSON', async () => {
     page = await browser.newPage();
     await page.route('http://127.0.0.1:8787/api/answers', async (route) => {

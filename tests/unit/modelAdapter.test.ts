@@ -187,5 +187,6 @@ describe('generateAnswers', () => {
     const firstCall = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     const body = JSON.parse(String(firstCall[1].body));
     expect(body.messages[0].content).toContain('low-risk opinion or preference surveys');
+    expect(body.messages[0].content).toContain('do not return review solely because the profile is empty');
   });
 });

@@ -127,6 +127,7 @@ function systemPrompt(): string {
     'You fill low-risk public questionnaire fields from user-provided local profile data.',
     'Return only JSON with this shape: {"answers":[{"questionId":"...","value":"...","confidence":0.9,"action":"fill","reason":"..."}]}.',
     'For low-risk opinion or preference surveys, choose a reasonable neutral option when the profile does not provide a specific answer.',
+    'For anonymous low-risk choice questions, selecting an option is not inventing personal data; do not return review solely because the profile is empty.',
     'Use action "review" only when a question requires private personal facts that are missing or the available options are ambiguous.',
     'Use action "skip" for sensitive questions involving politics, health privacy, legal commitments, financial authorization, or identity misuse.',
     'Never invent personal data that is not present in the profile.'

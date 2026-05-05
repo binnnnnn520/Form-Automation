@@ -123,32 +123,92 @@ export function fillHelperScript(): string {
     element.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function normalizeAnswerText(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/^[\s([{（【]*(?:[a-z]|\d+|[一二三四五六七八九十]+)[\s.．、):：）\]-]+/i, '')
+      .replace(/[○●◯]/g, '')
+      .replace(/[\s"'“”‘’，,。.;；:：!?？()[\]（）【】{}]/g, '');
+  }
+
+  function answerValues(value) {
+    const raw = Array.isArray(value) ? value : String(value || '').split(/[，,、;；|]/);
+    return raw.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  function textMatches(candidate, expected) {
+    const left = normalizeAnswerText(candidate);
+    const right = normalizeAnswerText(expected);
+    if (!left || !right) return false;
+    if (left === right) return true;
+    return Math.min(left.length, right.length) >= 2 && (left.includes(right) || right.includes(left));
+  }
+
+  function answerIndex(value) {
+    const text = String(value || '').trim();
+    const letter = text.match(/^(?:选项)?([a-z])(?:$|[\s.．、):：）-])/i);
+    if (letter) return letter[1].toUpperCase().charCodeAt(0) - 65;
+    const numeric = text.match(/^(?:第)?(\d+)(?:项|个)?$/);
+    if (numeric) return Number(numeric[1]) - 1;
+    return -1;
+  }
+
+  function matchInput(inputs, expected, used) {
+    const index = answerIndex(expected);
+    if (index >= 0 && inputs[index] && !used.has(inputs[index])) return inputs[index];
+    for (const input of inputs) {
+      if (used.has(input)) continue;
+      const candidates = [
+        input.value,
+        optionLabel(input),
+        input.getAttribute('aria-label'),
+        input.getAttribute('title')
+      ];
+      if (candidates.some((candidate) => textMatches(candidate, expected))) return input;
+    }
+    return null;
+  }
+
+  function matchSelectValue(select, expected) {
+    const options = Array.from(select.options).filter((option) => option.value);
+    const index = answerIndex(expected);
+    if (index >= 0 && options[index]) return options[index].value;
+    const matched = options.find((option) => textMatches(option.value, expected) || textMatches(textOf(option), expected));
+    return matched ? matched.value : '';
+  }
+
   function fillAnswer(answer, bindings) {
     const binding = bindings.get(answer.questionId);
-    if (!binding || answer.action !== 'fill' || answer.confidence < MIN_CONFIDENCE) return 'review';
+    if (!binding) return 'unmatched';
+    if (answer.action === 'skip') return 'skipped';
+    if (answer.action !== 'fill' || answer.confidence < MIN_CONFIDENCE) return 'review';
     if (binding.kind === 'text') {
       binding.element.value = String(answer.value);
       emitInput(binding.element);
       return 'filled';
     }
     if (binding.kind === 'select') {
-      binding.element.value = String(answer.value);
+      const value = matchSelectValue(binding.element, answer.value);
+      if (!value) return 'unmatched';
+      binding.element.value = value;
       emitInput(binding.element);
       return 'filled';
     }
-    const values = Array.isArray(answer.value) ? answer.value.map(String) : [String(answer.value)];
+    const values = answerValues(answer.value);
+    const used = new Set();
     let filled = 0;
-    for (const input of binding.inputs) {
-      const label = optionLabel(input);
-      const value = input.value || label;
-      if (values.includes(value) || values.includes(label)) {
-        input.click();
-        input.checked = true;
-        emitInput(input);
-        filled += 1;
-      }
+    for (const value of values) {
+      const input = matchInput(binding.inputs, value, used);
+      if (!input) continue;
+      used.add(input);
+      const clickTarget = input.closest('label,.ui-radio,.ui-checkbox,.radio,.checkbox,.option,.choice,.item,li') || input;
+      clickTarget.click();
+      input.checked = true;
+      emitInput(input);
+      filled += 1;
     }
-    return filled === values.length ? 'filled' : 'review';
+    return filled > 0 && filled === values.length ? 'filled' : 'unmatched';
   }
 
   function showMessage(message) {
@@ -208,8 +268,13 @@ export function fillHelperScript(): string {
     }
     const payload = await response.json();
     const answers = payload.answers || [];
-    const filled = answers.map((answer) => fillAnswer(answer, bindings)).filter((status) => status === 'filled').length;
-    showMessage('已填写 ' + filled + ' / ' + questions.length + ' 道题。请人工检查后手动提交。');
+    const results = answers.map((answer) => fillAnswer(answer, bindings));
+    const filled = results.filter((status) => status === 'filled').length;
+    const review = results.filter((status) => status === 'review').length;
+    const skipped = results.filter((status) => status === 'skipped').length;
+    const unmatched = results.filter((status) => status === 'unmatched').length;
+    const fillable = answers.filter((answer) => answer.action === 'fill' && answer.confidence >= MIN_CONFIDENCE).length;
+    showMessage('已填写 ' + filled + ' / ' + questions.length + ' 道题。模型返回 ' + answers.length + ' 条；可填 ' + fillable + '，未匹配 ' + unmatched + '，需人工 ' + (review + skipped) + '。请人工检查后手动提交。');
   } catch (error) {
     showMessage(error instanceof Error ? error.message : '填充助手执行失败');
   }
