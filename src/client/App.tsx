@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { DEFAULT_MODEL_NAME } from '../shared/defaults';
 import { ModelConfig, ProfileData, QuestionnaireTask } from '../shared/types';
 import { api } from './api';
 import { normalizeImportedUrl } from './qr';
@@ -11,7 +12,7 @@ const emptyProfile = (): ProfileData => ({
 const emptyModel = (): ModelConfig => ({
   baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
-  model: 'deepseek-chat',
+  model: DEFAULT_MODEL_NAME,
   updatedAt: new Date().toISOString()
 });
 
