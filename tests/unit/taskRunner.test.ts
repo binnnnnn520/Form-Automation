@@ -95,4 +95,25 @@ describe('executeQuestionnaireTask', () => {
     expect(browser.close).toHaveBeenCalledOnce();
     expect(deps.generateAnswers).not.toHaveBeenCalled();
   });
+
+  it('marks the task failed when no questions are extracted', async () => {
+    const page = { goto: vi.fn() };
+    const browser = { newPage: vi.fn(async () => page), close: vi.fn() };
+    const deps = {
+      launchBrowser: vi.fn(async () => browser),
+      extractQuestions: vi.fn(async () => ({ status: 'ok' as const, questions: [] })),
+      generateAnswers: vi.fn(),
+      fillQuestionnaire: vi.fn()
+    };
+
+    const task = await executeQuestionnaireTask(
+      { url: 'https://example.test/form', profile, modelConfig },
+      deps
+    );
+
+    expect(task.status).toBe('failed');
+    expect(task.error).toContain('No questionnaire questions were detected');
+    expect(browser.close).toHaveBeenCalledOnce();
+    expect(deps.generateAnswers).not.toHaveBeenCalled();
+  });
 });

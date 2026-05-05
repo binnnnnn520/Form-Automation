@@ -78,6 +78,12 @@ export async function executeQuestionnaireTask(
       await browser.close();
       return setTaskStatus(task, 'failed', { error: extracted.reason, questions: [] });
     }
+    if (extracted.questions.length === 0) {
+      await browser.close();
+      return setTaskStatus(task, 'failed', {
+        error: 'No questionnaire questions were detected. The link may be invalid, expired, blocked, or unsupported.'
+      });
+    }
 
     task = setTaskStatus(task, 'answering', { questions: extracted.questions });
     const answers = await dependencies.generateAnswers({

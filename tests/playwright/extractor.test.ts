@@ -50,4 +50,14 @@ describe('extractQuestions', () => {
       expect(result.reason).toContain('captcha');
     }
   });
+
+  it('stops when the questionnaire page cannot be displayed', async () => {
+    await openFixture('unavailable-page.html');
+    const result = await extractQuestions(page);
+
+    expect(result.status).toBe('blocked');
+    if (result.status === 'blocked') {
+      expect(result.reason).toContain('not available');
+    }
+  });
 });

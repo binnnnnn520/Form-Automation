@@ -15,6 +15,10 @@ export async function extractQuestions(page: Page): Promise<ExtractResult> {
     return { status: 'blocked', reason: 'captcha required', questions: [] };
   }
 
+  if (/无法显示网页|无法访问|404|not found|page not found|unavailable/i.test(bodyText)) {
+    return { status: 'blocked', reason: 'questionnaire page not available', questions: [] };
+  }
+
   const questions = await page.evaluate(() => {
     const output: Array<{
       id: string;
