@@ -96,4 +96,42 @@ describe('generateAnswers', () => {
 
     await expect(generateAnswers({ config, profile, questions })).rejects.toThrow('Model response was not valid JSON');
   });
+
+  it('parses JSON wrapped in a markdown code fence', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: [
+              '```json',
+              '{',
+              '  "answers": [',
+              '    {',
+              '      "questionId": "q1",',
+              '      "value": "张三",',
+              '      "confidence": 0.98,',
+              '      "action": "fill",',
+              '      "reason": "profile name"',
+              '    }',
+              '  ]',
+              '}',
+              '```'
+            ].join('\n')
+          }
+        }
+      ]
+    }), { status: 200 })));
+
+    const answers = await generateAnswers({ config, profile, questions });
+
+    expect(answers[0].value).toBe('张三');
+  });
+
+  it('includes provider error details when the model request fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      error: { message: 'Invalid model id: bad-model' }
+    }), { status: 400 })));
+
+    await expect(generateAnswers({ config, profile, questions })).rejects.toThrow('Model request failed with HTTP 400: Invalid model id: bad-model');
+  });
 });

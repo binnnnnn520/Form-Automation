@@ -57,6 +57,17 @@ export class JsonStore {
 
 function parseModelConfig(value: unknown): ModelConfig {
   const parsed = ModelConfigSchema.parse(value);
-  const model = parsed.model.trim() || DEFAULT_MODEL_NAME;
+  const model = normalizeModelName(parsed.baseUrl, parsed.model);
   return { ...parsed, model };
+}
+
+function normalizeModelName(baseUrl: string, model: string): string {
+  const trimmed = model.trim();
+  if (!trimmed) {
+    return DEFAULT_MODEL_NAME;
+  }
+  if (baseUrl.includes('api-inference.modelscope.cn') && trimmed === 'deepseek-chat') {
+    return DEFAULT_MODEL_NAME;
+  }
+  return trimmed;
 }

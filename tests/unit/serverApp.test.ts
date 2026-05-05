@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../src/server/app';
 import { createQuestionnaireTask, ExecuteQuestionnaireTaskInput } from '../../src/server/tasks/taskRunner';
+import { DEFAULT_MODEL_NAME } from '../../src/shared/defaults';
 
 let dir: string;
 
@@ -89,7 +90,7 @@ describe('local API', () => {
       payload: { url: 'https://example.test/form' }
     });
 
-    expect(runTask.mock.calls[0][0].modelConfig.model).toBe('deepseek-chat');
+    expect(runTask.mock.calls[0][0].modelConfig.model).toBe(DEFAULT_MODEL_NAME);
 
     await app.close();
   });

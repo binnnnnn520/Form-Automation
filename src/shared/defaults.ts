@@ -1,1 +1,1 @@
-export const DEFAULT_MODEL_NAME = 'deepseek-chat';
+export const DEFAULT_MODEL_NAME = 'deepseek-ai/DeepSeek-V3.2';

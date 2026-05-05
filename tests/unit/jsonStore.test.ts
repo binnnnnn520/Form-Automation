@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_MODEL_NAME } from '../../src/shared/defaults';
 import { JsonStore } from '../../src/server/storage/jsonStore';
 
 let dir: string;
@@ -43,7 +44,7 @@ describe('JsonStore', () => {
     const store = new JsonStore(dir);
     const config = await store.readModelConfig();
 
-    expect(config.model).toBe('deepseek-chat');
+    expect(config.model).toBe(DEFAULT_MODEL_NAME);
   });
 
   it('normalizes a blank saved model name to the default model', async () => {
@@ -55,8 +56,8 @@ describe('JsonStore', () => {
       updatedAt: '2026-05-05T00:00:00.000Z'
     });
 
-    expect(saved.model).toBe('deepseek-chat');
-    await expect(store.readModelConfig()).resolves.toMatchObject({ model: 'deepseek-chat' });
+    expect(saved.model).toBe(DEFAULT_MODEL_NAME);
+    await expect(store.readModelConfig()).resolves.toMatchObject({ model: DEFAULT_MODEL_NAME });
   });
 
   it('normalizes an existing blank model config file when reading', async () => {
@@ -71,7 +72,19 @@ describe('JsonStore', () => {
     const store = new JsonStore(dir);
     const config = await store.readModelConfig();
 
-    expect(config.model).toBe('deepseek-chat');
+    expect(config.model).toBe(DEFAULT_MODEL_NAME);
+  });
+
+  it('normalizes the legacy ModelScope deepseek-chat alias to a valid ModelScope model id', async () => {
+    const store = new JsonStore(dir);
+    const saved = await store.writeModelConfig({
+      baseUrl: 'https://api-inference.modelscope.cn/v1/chat/completions',
+      apiKey: 'key',
+      model: 'deepseek-chat',
+      updatedAt: '2026-05-05T00:00:00.000Z'
+    });
+
+    expect(saved.model).toBe(DEFAULT_MODEL_NAME);
   });
 
   it('reads JSON files that contain a UTF-8 BOM', async () => {

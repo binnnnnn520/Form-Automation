@@ -42,7 +42,7 @@ export async function generateAnswers(input: GenerateAnswersInput): Promise<Mode
   });
 
   if (!response.ok) {
-    throw new Error(`Model request failed with HTTP ${response.status}`);
+    throw new Error(`Model request failed with HTTP ${response.status}${await providerErrorDetails(response)}`);
   }
 
   const parsed = ChatResponseSchema.parse(await response.json());
@@ -50,7 +50,7 @@ export async function generateAnswers(input: GenerateAnswersInput): Promise<Mode
 
   let decoded: unknown;
   try {
-    decoded = JSON.parse(content);
+    decoded = JSON.parse(extractJsonContent(content));
   } catch {
     throw new Error('Model response was not valid JSON');
   }
@@ -84,6 +84,27 @@ export async function testModelConnection(config: ModelConfig): Promise<{ ok: bo
 function chatCompletionsUrl(baseUrl: string): string {
   const normalized = baseUrl.replace(/\/+$/, '');
   return /\/chat\/completions$/i.test(normalized) ? normalized : `${normalized}/chat/completions`;
+}
+
+function extractJsonContent(content: string): string {
+  const trimmed = content.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+async function providerErrorDetails(response: Response): Promise<string> {
+  const raw = await response.text();
+  if (!raw.trim()) {
+    return '';
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { error?: { message?: string }; message?: string };
+    const message = parsed.error?.message || parsed.message;
+    return message ? `: ${message}` : `: ${raw}`;
+  } catch {
+    return `: ${raw}`;
+  }
 }
 
 function systemPrompt(): string {

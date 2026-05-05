@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { App } from '../../src/client/App';
+import { DEFAULT_MODEL_NAME } from '../../src/shared/defaults';
 
 describe('App', () => {
   it('renders the local automation console', () => {
@@ -15,6 +16,6 @@ describe('App', () => {
   it('uses a non-empty default model name', () => {
     render(<App />);
 
-    expect(screen.getByDisplayValue('deepseek-chat')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(DEFAULT_MODEL_NAME)).toBeInTheDocument();
   });
 });
