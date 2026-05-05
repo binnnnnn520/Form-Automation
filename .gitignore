@@ -3,5 +3,6 @@ dist/
 .data/
 test-results/
 playwright-report/
+.worktrees/
 .superpowers/
 *.log
