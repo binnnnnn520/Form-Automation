@@ -138,6 +138,11 @@ button:hover {
   background: #332b22;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .status,
 .taskCard p {
   color: var(--muted);

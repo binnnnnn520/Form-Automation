@@ -24,7 +24,7 @@ export interface GenerateAnswersInput {
 
 export async function generateAnswers(input: GenerateAnswersInput): Promise<ModelAnswer[]> {
   const config = RunnableModelConfigSchema.parse(input.config);
-  const url = `${config.baseUrl.replace(/\/$/, '')}/chat/completions`;
+  const url = chatCompletionsUrl(config.baseUrl);
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -79,6 +79,11 @@ export async function testModelConnection(config: ModelConfig): Promise<{ ok: bo
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Model connection failed' };
   }
+}
+
+function chatCompletionsUrl(baseUrl: string): string {
+  const normalized = baseUrl.replace(/\/+$/, '');
+  return /\/chat\/completions$/i.test(normalized) ? normalized : `${normalized}/chat/completions`;
 }
 
 function systemPrompt(): string {

@@ -1,8 +1,9 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../src/server/app';
+import { createQuestionnaireTask } from '../../src/server/tasks/taskRunner';
 
 let dir: string;
 
@@ -32,9 +33,24 @@ describe('local API', () => {
     await app.close();
   });
 
-  it('creates local questionnaire tasks', async () => {
-    const app = buildApp({ dataDir: dir });
+  it('runs local questionnaire tasks with stored profile and model config', async () => {
+    const runTask = vi.fn(async ({ url }: { url: string }) => ({
+      ...createQuestionnaireTask(url),
+      status: 'complete' as const
+    }));
+    const app = buildApp({ dataDir: dir, runTask });
     await app.ready();
+
+    await app.inject({
+      method: 'PUT',
+      url: '/api/profile',
+      payload: { fields: { name: 'Alice' }, updatedAt: '2026-05-05T00:00:00.000Z' }
+    });
+    await app.inject({
+      method: 'PUT',
+      url: '/api/model-config',
+      payload: { baseUrl: 'https://example.test/v1', apiKey: 'key', model: 'model', updatedAt: '2026-05-05T00:00:00.000Z' }
+    });
 
     const response = await app.inject({
       method: 'POST',
@@ -43,7 +59,12 @@ describe('local API', () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json().status).toBe('idle');
+    expect(response.json().status).toBe('complete');
+    expect(runTask).toHaveBeenCalledWith({
+      url: 'https://example.test/form',
+      profile: { fields: { name: 'Alice' }, updatedAt: '2026-05-05T00:00:00.000Z' },
+      modelConfig: { baseUrl: 'https://example.test/v1', apiKey: 'key', model: 'model', updatedAt: '2026-05-05T00:00:00.000Z' }
+    });
 
     await app.close();
   });

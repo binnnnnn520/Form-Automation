@@ -2,12 +2,14 @@ import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { z } from 'zod';
 import { ModelConfigSchema, ProfileSchema } from '../shared/schemas';
+import { QuestionnaireTask } from '../shared/types';
 import { testModelConnection } from './model/modelAdapter';
 import { JsonStore } from './storage/jsonStore';
-import { createQuestionnaireTask } from './tasks/taskRunner';
+import { executeQuestionnaireTask, ExecuteQuestionnaireTaskInput } from './tasks/taskRunner';
 
 export interface BuildAppOptions {
   dataDir?: string;
+  runTask?: (input: ExecuteQuestionnaireTaskInput) => Promise<QuestionnaireTask>;
 }
 
 const CreateTaskSchema = z.object({
@@ -17,6 +19,7 @@ const CreateTaskSchema = z.object({
 export function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({ logger: false });
   const store = new JsonStore(options.dataDir);
+  const runTask = options.runTask || executeQuestionnaireTask;
 
   app.register(cors, { origin: true });
 
@@ -45,7 +48,11 @@ export function buildApp(options: BuildAppOptions = {}) {
 
   app.post('/api/tasks', async (request, reply) => {
     const input = CreateTaskSchema.parse(request.body);
-    const task = createQuestionnaireTask(input.url);
+    const [profile, modelConfig] = await Promise.all([
+      store.readProfile(),
+      store.readModelConfig()
+    ]);
+    const task = await runTask({ url: input.url, profile, modelConfig });
     return reply.code(201).send(task);
   });
 

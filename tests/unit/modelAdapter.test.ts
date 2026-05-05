@@ -58,6 +58,37 @@ describe('generateAnswers', () => {
     expect(answers[0].value).toBe('张三');
   });
 
+  it('accepts either a base API URL or a full chat completions endpoint', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              answers: [
+                {
+                  questionId: 'q1',
+                  value: '张三',
+                  confidence: 0.98,
+                  action: 'fill',
+                  reason: 'profile name'
+                }
+              ]
+            })
+          }
+        }
+      ]
+    }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await generateAnswers({
+      config: { ...config, baseUrl: 'https://example.test/v1/chat/completions' },
+      profile,
+      questions
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('https://example.test/v1/chat/completions', expect.any(Object));
+  });
+
   it('throws a readable error when the provider returns invalid JSON', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
       choices: [{ message: { content: 'not-json' } }]

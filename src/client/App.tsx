@@ -20,19 +20,24 @@ export function App() {
   const [profile, setProfile] = useState<ProfileData>(emptyProfile);
   const [modelConfig, setModelConfig] = useState<ModelConfig>(emptyModel);
   const [task, setTask] = useState<QuestionnaireTask | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState('本地保存资料，不自动提交问卷。');
 
   async function startTask(event: FormEvent) {
     event.preventDefault();
+    setIsRunning(true);
+    setMessage('正在打开问卷、分析题目并填写，请等待受控浏览器窗口。');
     try {
       const normalizedUrl = normalizeImportedUrl(url);
       await api.saveProfile({ ...profile, updatedAt: new Date().toISOString() });
       await api.saveModelConfig({ ...modelConfig, updatedAt: new Date().toISOString() });
       const created = await api.createTask(normalizedUrl);
       setTask(created);
-      setMessage('任务已创建，下一步将接入页面分析和自动填写。');
+      setMessage(taskMessage(created));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '任务创建失败');
+    } finally {
+      setIsRunning(false);
     }
   }
 
@@ -58,7 +63,7 @@ export function App() {
             问卷链接
             <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://..." />
           </label>
-          <button type="submit">创建填写任务</button>
+          <button type="submit" disabled={isRunning}>{isRunning ? '正在执行...' : '分析并填写任务'}</button>
           <p className="status">{message}</p>
         </section>
 
@@ -107,4 +112,17 @@ export function App() {
       </form>
     </main>
   );
+}
+
+function taskMessage(task: QuestionnaireTask): string {
+  if (task.status === 'complete') {
+    return '填写已完成。请检查打开的浏览器页面，确认无误后手动提交。';
+  }
+  if (task.status === 'needs_review') {
+    return '已填写可安全匹配的项目，仍有问题需要人工确认。请检查打开的浏览器页面。';
+  }
+  if (task.status === 'failed') {
+    return task.error || '任务执行失败';
+  }
+  return `任务状态：${task.status}`;
 }
