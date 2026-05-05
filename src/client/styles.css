@@ -1,0 +1,156 @@
+:root {
+  color: #1f1b16;
+  background: #f4efe6;
+  font-family: Georgia, "Times New Roman", serif;
+  --paper: #fffaf0;
+  --ink: #1f1b16;
+  --muted: #746b5f;
+  --line: #d8cdbc;
+  --accent: #2f6f61;
+  --amber: #a16207;
+  --error: #9f1d1d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    linear-gradient(120deg, rgba(47, 111, 97, 0.08), transparent 36%),
+    var(--paper);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shell {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 38px 0;
+}
+
+.hero {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(38px, 6vw, 74px);
+  line-height: 0.96;
+  letter-spacing: 0;
+}
+
+.lede {
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.2fr) minmax(260px, 0.9fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.82);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  box-shadow: 0 16px 42px rgba(31, 27, 22, 0.06);
+}
+
+.primary {
+  min-height: 250px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.panelHeader span {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.panelHeader h2 {
+  font-size: 20px;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fffdf8;
+  color: var(--ink);
+  padding: 11px 12px;
+}
+
+input:focus {
+  outline: 2px solid rgba(47, 111, 97, 0.22);
+  border-color: var(--accent);
+}
+
+button {
+  border: 0;
+  border-radius: 7px;
+  background: var(--ink);
+  color: #fffaf0;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #332b22;
+}
+
+.status,
+.taskCard p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.taskCard {
+  border-left: 3px solid var(--amber);
+  padding-left: 12px;
+}
+
+@media (max-width: 860px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}

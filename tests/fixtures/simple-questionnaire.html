@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <body>
+    <form>
+      <label data-qid="name">姓名 <input name="name" required /></label>
+      <fieldset data-qid="dept">
+        <legend>请选择部门</legend>
+        <label><input type="radio" name="dept" value="研发部" />研发部</label>
+        <label><input type="radio" name="dept" value="市场部" />市场部</label>
+      </fieldset>
+      <fieldset data-qid="tools">
+        <legend>常用工具</legend>
+        <label><input type="checkbox" name="tools" value="飞书" />飞书</label>
+        <label><input type="checkbox" name="tools" value="微信" />微信</label>
+      </fieldset>
+      <label data-qid="city">城市
+        <select name="city">
+          <option value="">请选择</option>
+          <option value="北京">北京</option>
+          <option value="上海">上海</option>
+        </select>
+      </label>
+      <button type="submit">提交</button>
+    </form>
+  </body>
+</html>
