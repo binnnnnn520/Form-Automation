@@ -135,6 +135,31 @@ describe('generateAnswers', () => {
     await expect(generateAnswers({ config, profile, questions })).rejects.toThrow('Model request failed with HTTP 400: Invalid model id: bad-model');
   });
 
+  it('rejects ModelScope credentials configured against the OpenAI endpoint before sending a request', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(generateAnswers({
+      config: {
+        ...config,
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'ms-2a958-secret-d857',
+        model: 'deepseek-ai/DeepSeek-V3.2'
+      },
+      profile,
+      questions
+    })).rejects.toThrow('ModelScope 配置应使用 Base URL https://api-inference.modelscope.cn/v1');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('redacts API key fragments from provider error messages', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      error: { message: 'Incorrect API key provided: ms-2a958-secret-d857.' }
+    }), { status: 401 })));
+
+    await expect(generateAnswers({ config, profile, questions })).rejects.toThrow('Incorrect API key provided: [redacted]');
+  });
+
   it('prompts the model to fill low-risk opinion questionnaires with safe choices', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       choices: [

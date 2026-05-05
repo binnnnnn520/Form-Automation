@@ -162,7 +162,33 @@ export function fillHelperScript(): string {
     box.textContent = message;
   }
 
+  function isLocalControlPage() {
+    return /^(127\.0\.0\.1|localhost)$/i.test(location.hostname);
+  }
+
+  function cleanError(message) {
+    return String(message || '')
+      .replace(/\b(?:sk|ms)-[A-Za-z0-9_*.-]{6,}/gi, '[redacted]')
+      .replace(/\b[A-Za-z0-9_-]{2,}\*{6,}[A-Za-z0-9_-]{2,}\b/g, '[redacted]');
+  }
+
+  async function responseErrorMessage(response) {
+    const raw = await response.text();
+    if (!raw.trim()) return 'HTTP ' + response.status;
+    try {
+      const parsed = JSON.parse(raw);
+      return cleanError(parsed.message || parsed.error || raw);
+    } catch {
+      return cleanError(raw);
+    }
+  }
+
   try {
+    if (isLocalControlPage()) {
+      showMessage('不要在控制台页面运行助手。请先打开问卷页面，再点击收藏栏里的真实页面填充助手。');
+      return;
+    }
+
     showMessage('正在提取当前问卷题目...');
     const { questions, bindings } = extractQuestions();
     if (questions.length === 0) {
@@ -177,8 +203,7 @@ export function fillHelperScript(): string {
       body: JSON.stringify({ questions })
     });
     if (!response.ok) {
-      const detail = await response.text();
-      showMessage('本地模型接口失败：HTTP ' + response.status + (detail ? ' ' + detail.slice(0, 120) : ''));
+      showMessage('本地模型接口失败：' + await responseErrorMessage(response));
       return;
     }
     const payload = await response.json();

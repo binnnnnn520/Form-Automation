@@ -24,6 +24,7 @@ export interface GenerateAnswersInput {
 
 export async function generateAnswers(input: GenerateAnswersInput): Promise<ModelAnswer[]> {
   const config = RunnableModelConfigSchema.parse(input.config);
+  assertProviderConfig(config);
   const url = chatCompletionsUrl(config.baseUrl);
   const response = await fetch(url, {
     method: 'POST',
@@ -86,6 +87,14 @@ function chatCompletionsUrl(baseUrl: string): string {
   return /\/chat\/completions$/i.test(normalized) ? normalized : `${normalized}/chat/completions`;
 }
 
+function assertProviderConfig(config: ModelConfig): void {
+  const isOpenAIEndpoint = /^https:\/\/api\.openai\.com(?:\/|$)/i.test(config.baseUrl);
+  const looksLikeModelScope = /^ms-/i.test(config.apiKey) || /^deepseek-ai\//i.test(config.model);
+  if (isOpenAIEndpoint && looksLikeModelScope) {
+    throw new Error('ModelScope 配置应使用 Base URL https://api-inference.modelscope.cn/v1。当前配置把 ModelScope 的 key/模型发给了 OpenAI。');
+  }
+}
+
 function extractJsonContent(content: string): string {
   const trimmed = content.trim();
   const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
@@ -101,10 +110,16 @@ async function providerErrorDetails(response: Response): Promise<string> {
   try {
     const parsed = JSON.parse(raw) as { error?: { message?: string }; message?: string };
     const message = parsed.error?.message || parsed.message;
-    return message ? `: ${message}` : `: ${raw}`;
+    return message ? `: ${redactSecrets(message)}` : `: ${redactSecrets(raw)}`;
   } catch {
-    return `: ${raw}`;
+    return `: ${redactSecrets(raw)}`;
   }
+}
+
+function redactSecrets(message: string): string {
+  return message
+    .replace(/\b(?:sk|ms)-[A-Za-z0-9_*.-]{6,}/gi, '[redacted]')
+    .replace(/\b[A-Za-z0-9_-]{2,}\*{6,}[A-Za-z0-9_-]{2,}\b/g, '[redacted]');
 }
 
 function systemPrompt(): string {
