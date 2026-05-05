@@ -143,6 +143,46 @@ button:disabled {
   opacity: 0.62;
 }
 
+.secondaryButton {
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  color: var(--ink);
+}
+
+.secondaryButton:hover {
+  background: #f4efe6;
+}
+
+.helperBox {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.helperLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid rgba(47, 111, 97, 0.35);
+  border-radius: 7px;
+  color: var(--accent);
+  background: rgba(47, 111, 97, 0.08);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.helperLink:hover {
+  background: rgba(47, 111, 97, 0.14);
+}
+
+.helperBox p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .status,
 .taskCard p {
   color: var(--muted);

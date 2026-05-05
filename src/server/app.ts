@@ -1,25 +1,32 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { z } from 'zod';
-import { ModelConfigSchema, ProfileSchema } from '../shared/schemas';
-import { QuestionnaireTask } from '../shared/types';
-import { testModelConnection } from './model/modelAdapter';
+import { ModelConfigSchema, ProfileSchema, QuestionSchema } from '../shared/schemas';
+import { ModelAnswer, QuestionnaireTask } from '../shared/types';
+import { GenerateAnswersInput, generateAnswers, testModelConnection } from './model/modelAdapter';
+import { fillHelperScript } from './helper/fillHelperScript';
 import { JsonStore } from './storage/jsonStore';
 import { executeQuestionnaireTask, ExecuteQuestionnaireTaskInput } from './tasks/taskRunner';
 
 export interface BuildAppOptions {
   dataDir?: string;
   runTask?: (input: ExecuteQuestionnaireTaskInput) => Promise<QuestionnaireTask>;
+  answerQuestions?: (input: GenerateAnswersInput) => Promise<ModelAnswer[]>;
 }
 
 const CreateTaskSchema = z.object({
   url: z.string().url()
 });
 
+const AnswerRequestSchema = z.object({
+  questions: z.array(QuestionSchema)
+});
+
 export function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({ logger: false });
   const store = new JsonStore(options.dataDir);
   const runTask = options.runTask || executeQuestionnaireTask;
+  const answerQuestions = options.answerQuestions || generateAnswers;
 
   app.register(cors, { origin: true });
 
@@ -45,6 +52,20 @@ export function buildApp(options: BuildAppOptions = {}) {
     const config = ModelConfigSchema.parse(request.body);
     return testModelConnection(config);
   });
+
+  app.post('/api/answers', async (request, reply) => {
+    const input = AnswerRequestSchema.parse(request.body);
+    const [profile, modelConfig] = await Promise.all([
+      store.readProfile(),
+      store.readModelConfig()
+    ]);
+    const answers = await answerQuestions({ config: modelConfig, profile, questions: input.questions });
+    return reply.send({ answers });
+  });
+
+  app.get('/api/fill-helper.js', async (_request, reply) => (
+    reply.type('application/javascript; charset=utf-8').send(fillHelperScript())
+  ));
 
   app.post('/api/tasks', async (request, reply) => {
     const input = CreateTaskSchema.parse(request.body);

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../src/server/app';
 import { createQuestionnaireTask, ExecuteQuestionnaireTaskInput } from '../../src/server/tasks/taskRunner';
 import { DEFAULT_MODEL_NAME } from '../../src/shared/defaults';
+import { GenerateAnswersInput } from '../../src/server/model/modelAdapter';
 
 let dir: string;
 
@@ -91,6 +92,57 @@ describe('local API', () => {
     });
 
     expect(runTask.mock.calls[0][0].modelConfig.model).toBe(DEFAULT_MODEL_NAME);
+
+    await app.close();
+  });
+
+  it('generates answers for questions extracted from a real browser page', async () => {
+    const answerQuestions = vi.fn(async (_input: GenerateAnswersInput) => [
+      { questionId: 'q1', value: 'A', confidence: 0.9, action: 'fill' as const, reason: 'test' }
+    ]);
+    const app = buildApp({ dataDir: dir, answerQuestions });
+    await app.ready();
+
+    await app.inject({
+      method: 'PUT',
+      url: '/api/profile',
+      payload: { fields: { name: 'Alice' }, updatedAt: '2026-05-05T00:00:00.000Z' }
+    });
+    await app.inject({
+      method: 'PUT',
+      url: '/api/model-config',
+      payload: { baseUrl: 'https://example.test/v1', apiKey: 'key', model: 'model', updatedAt: '2026-05-05T00:00:00.000Z' }
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/answers',
+      payload: {
+        questions: [
+          { id: 'q1', label: 'Question', kind: 'single', required: true, selector: '#q1', options: [{ label: 'A', value: 'A', selector: '#a' }], risk: 'normal' }
+        ]
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().answers[0].value).toBe('A');
+    expect(answerQuestions).toHaveBeenCalledWith(expect.objectContaining({
+      profile: expect.objectContaining({ fields: { name: 'Alice' } }),
+      config: expect.objectContaining({ model: 'model' })
+    }));
+
+    await app.close();
+  });
+
+  it('serves the browser-page fill helper script', async () => {
+    const app = buildApp({ dataDir: dir });
+    await app.ready();
+
+    const response = await app.inject({ method: 'GET', url: '/api/fill-helper.js' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('application/javascript');
+    expect(response.body).toContain('/api/answers');
 
     await app.close();
   });

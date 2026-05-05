@@ -13,6 +13,14 @@ describe('App', () => {
     expect(screen.getByText('本地资料')).toBeInTheDocument();
     expect(screen.getByText('模型配置')).toBeInTheDocument();
   });
+
+  it('shows the real-page helper bookmarklet for blocked questionnaire pages', () => {
+    render(<App />);
+
+    const helper = screen.getByText('真实页面填充助手');
+    expect(helper).toHaveAttribute('href', expect.stringContaining('/api/fill-helper.js'));
+  });
+
   it('uses a non-empty default model name', () => {
     render(<App />);
 

@@ -134,4 +134,33 @@ describe('generateAnswers', () => {
 
     await expect(generateAnswers({ config, profile, questions })).rejects.toThrow('Model request failed with HTTP 400: Invalid model id: bad-model');
   });
+
+  it('prompts the model to fill low-risk opinion questionnaires with safe choices', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              answers: [
+                {
+                  questionId: 'q1',
+                  value: '张三',
+                  confidence: 0.98,
+                  action: 'fill',
+                  reason: 'profile name'
+                }
+              ]
+            })
+          }
+        }
+      ]
+    }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await generateAnswers({ config, profile, questions });
+
+    const firstCall = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse(String(firstCall[1].body));
+    expect(body.messages[0].content).toContain('low-risk opinion or preference surveys');
+  });
 });
