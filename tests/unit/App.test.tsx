@@ -21,6 +21,13 @@ describe('App', () => {
     expect(helper).toHaveAttribute('href', expect.stringContaining('/api/fill-helper.js'));
   });
 
+  it('shows a copyable helper code fallback when dragging the bookmarklet fails', () => {
+    render(<App />);
+
+    expect(screen.getByRole('button', { name: '复制助手代码' })).toBeInTheDocument();
+    expect((screen.getByLabelText('助手代码') as HTMLTextAreaElement).value).toContain('/api/fill-helper.js');
+  });
+
   it('uses a non-empty default model name', () => {
     render(<App />);
 

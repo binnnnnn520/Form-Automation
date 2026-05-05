@@ -52,6 +52,18 @@ export function App() {
     }
   }
 
+  async function copyHelperCode() {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('clipboard unavailable');
+      }
+      await navigator.clipboard.writeText(helperBookmarklet);
+      setMessage('助手代码已复制。请在 Edge 收藏里新建或编辑收藏，把 URL 改成这段代码。');
+    } catch {
+      setMessage('复制失败时，请手动选中下面的助手代码并复制。');
+    }
+  }
+
   async function startTask(event: FormEvent) {
     event.preventDefault();
     setIsRunning(true);
@@ -103,12 +115,24 @@ export function App() {
               href="/api/fill-helper.js"
               onClick={(event) => {
                 event.preventDefault();
-                setMessage('请把“真实页面填充助手”拖到 Edge 收藏栏，再在普通 Edge 的问卷页面点击它。');
+                setMessage('拖不进收藏栏时，点击“复制助手代码”，再手动新建一个收藏并把 URL 改成这段代码。');
               }}
             >
               真实页面填充助手
             </a>
-            <p>问卷星拦截受控 Edge 时，把上面的助手拖到收藏栏；在普通 Edge 打开的问卷页点击它。</p>
+            <button type="button" className="secondaryButton" onClick={copyHelperCode}>
+              复制助手代码
+            </button>
+            <label className="bookmarkletCode">
+              助手代码
+              <textarea
+                readOnly
+                rows={3}
+                value={helperBookmarklet}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </label>
+            <p>拖不进收藏栏时，在 Edge 收藏里新建一个收藏，把 URL 改成上面的助手代码；打开问卷后点击这个收藏。</p>
           </div>
         </section>
 
