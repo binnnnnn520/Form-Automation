@@ -31,11 +31,15 @@ export interface TaskRunnerDependencies {
 const reviewBrowsers = new Set<TaskBrowser>();
 
 const defaultDependencies: TaskRunnerDependencies = {
-  launchBrowser: () => chromium.launch({ headless: false }),
+  launchBrowser: launchReviewBrowser,
   extractQuestions: (page) => extractQuestions(page as Page),
   generateAnswers,
   fillQuestionnaire: (page, questions, answers) => fillQuestionnaire(page as Page, questions, answers)
 };
+
+export function launchReviewBrowser(): Promise<TaskBrowser> {
+  return chromium.launch({ channel: 'msedge', headless: false });
+}
 
 export function createQuestionnaireTask(url: string): QuestionnaireTask {
   try {

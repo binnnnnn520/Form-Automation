@@ -12,4 +12,9 @@ describe('App', () => {
     expect(screen.getByText('本地资料')).toBeInTheDocument();
     expect(screen.getByText('模型配置')).toBeInTheDocument();
   });
+  it('uses a non-empty default model name', () => {
+    render(<App />);
+
+    expect(screen.getByDisplayValue('deepseek-chat')).toBeInTheDocument();
+  });
 });

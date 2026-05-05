@@ -11,7 +11,7 @@ const emptyProfile = (): ProfileData => ({
 const emptyModel = (): ModelConfig => ({
   baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
-  model: '',
+  model: 'deepseek-chat',
   updatedAt: new Date().toISOString()
 });
 
